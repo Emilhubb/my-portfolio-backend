@@ -29,10 +29,10 @@ app.use(
 app.use(express.json({ limit: "10kb" }));
 
 const generalLimiter = rateLimit({
-  windowsMs: 15 * 60 * 1000,
+  windowMs: 15 * 60 * 1000,
   limit: 100,
   standardHeaders: "draft-7",
-  legacyHeader: false,
+  legacyHeaders: false,
 });
 
 app.use("/api", generalLimiter);
