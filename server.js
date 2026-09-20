@@ -26,24 +26,24 @@ app.use(
   }),
 );
 
-app.use(express.json({limit: "10kb"}));
+app.use(express.json({ limit: "10kb" }));
 
 const generalLimiter = rateLimit({
-    windowsMs: 15 * 60 * 1000,
-    limit: 100,
-    standardHeaders: 'draft-7',
-    legacyHeader: false,
-})
+  windowsMs: 15 * 60 * 1000,
+  limit: 100,
+  standardHeaders: "draft-7",
+  legacyHeader: false,
+});
 
-app.use('/api', generalLimiter);
+app.use("/api", generalLimiter);
 
 app.get("/api/health", (req, res) => {
- res.json({
+  res.json({
     success: true,
     message: "API is running",
     timestamp: new Date().toISOString(),
- })
-})
+  });
+});
 
 app.use("/api/contact", contactRoutes);
 app.use("/api/duolingo", duolingoRoutes);
@@ -64,6 +64,9 @@ app.use((error, req, res, next) => {
   });
 });
 
-app.listen(PORT, () => {
-  console.log(`Express server http://localhost:${PORT} is running`);
-});
+if (process.env.NODE_ENV !== "production") {
+  app.listen(PORT, () => {
+    console.log(`Express server http://localhost:${PORT} is running`);
+  });
+}
+module.exports = app;
