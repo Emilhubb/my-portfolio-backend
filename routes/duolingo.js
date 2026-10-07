@@ -18,9 +18,10 @@ router.get("/", async (req, res, next) => {
     const username = process.env.DUOLINGO_USERNAME;
 
     if (!username) {
-      return res.status(500).json({
+      console.error("Duolingo username is not configured");
+      return res.status(503).json({
         success: false,
-        error: "DUOLINGO_USERNAME is not set",
+        error: "Duolingo stats are temporarily unavailable",
       });
     }
 
@@ -39,8 +40,39 @@ router.get("/", async (req, res, next) => {
     }
 
     const data = await response.json();
+    const user = data?.users?.[0];
 
-    cachedData = data;
+    if (!user || typeof user !== "object") {
+      throw new Error("Duolingo response did not contain a user");
+    }
+
+    // Return only the fields rendered by the portfolio, not the provider's
+    // full profile payload.
+    const publicUser = {
+      id: user.id,
+      name: user.name,
+      username: user.username,
+      streak: Number(user.streak) || 0,
+      streakData: user.streakData?.currentStreak?.startDate
+        ? {
+            currentStreak: {
+              startDate: user.streakData.currentStreak.startDate,
+            },
+          }
+        : undefined,
+      courses: Array.isArray(user.courses)
+        ? user.courses.map((course) => ({
+            id: String(course.id),
+            learningLanguage: String(course.learningLanguage ?? ""),
+            title: String(course.title ?? ""),
+            xp: Number(course.xp) || 0,
+          }))
+        : [],
+      totalXp: Number(user.totalXp) || 0,
+    };
+    const publicData = { users: [publicUser] };
+
+    cachedData = publicData;
     cacheExpiresAt = now + ONE_HOUR;
 
     res.setHeader(
@@ -48,7 +80,7 @@ router.get("/", async (req, res, next) => {
       "public, max-age=300, stale-while-revalidate=3600",
     );
 
-    return res.json(data);
+    return res.json(publicData);
   } catch (error) {
     console.error("Duolingo API error:", error);
     next(error);
